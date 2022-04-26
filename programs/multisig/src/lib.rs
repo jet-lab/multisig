@@ -47,7 +47,7 @@ pub mod serum_multisig {
 
         let multisig = &mut ctx.accounts.multisig;
         multisig.owners = owners;
-        // multisig.signer = ctx.accounts.signer.key();
+        multisig.signer = ctx.accounts.signer.key();
         multisig.threshold = threshold;
         multisig.nonce = nonce;
         multisig.owner_set_seqno = 0;
@@ -276,6 +276,13 @@ pub mod serum_multisig {
 pub struct CreateMultisig<'info> {
     #[account(zero, signer)]
     multisig: Box<Account<'info, Multisig>>,
+
+    #[account(
+        seeds = [multisig.key().as_ref()], 
+        bump
+    )]
+    signer: AccountInfo<'info>,
+    rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
@@ -317,6 +324,7 @@ pub struct CreateTransaction<'info> {
     transaction: Box<Account<'info, Transaction>>,
     // One of the owners. Checked in the handler.
     proposer: Signer<'info>,
+    rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]

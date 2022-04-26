@@ -95,6 +95,8 @@ impl<'a> MultisigGateway<'a> {
             ))
             .accounts(serum_multisig::accounts::CreateMultisig {
                 multisig: multisig_acct.pubkey(),
+                signer,
+                rent: anchor_client::solana_sdk::sysvar::rent::ID,
             })
             .args(serum_multisig::instruction::CreateMultisig {
                 owners,
@@ -167,6 +169,7 @@ impl<'a> MultisigGateway<'a> {
                 multisig,
                 transaction: tx_acct.pubkey(),
                 proposer: self.payer.pubkey(),
+                rent: anchor_client::solana_sdk::sysvar::rent::ID,
             })
             .args(serum_multisig::instruction::CreateTransaction { pid, accs, data });
 
