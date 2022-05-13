@@ -10,7 +10,7 @@ use std::rc::Rc;
 
 pub use anchor_client;
 
-use anchor_client::solana_sdk::{signer::{Signer, SignerError}, signature::Signature, pubkey::Pubkey};
+use anchor_client::solana_sdk::{signer::{Signer, SignerError}, signature::Signature, pubkey::Pubkey, commitment_config::CommitmentConfig};
 use anyhow::Result;
 
 use clap2::ArgMatches;
@@ -36,7 +36,13 @@ pub fn load_service<'a>(
     inspector: Option<Box<dyn ProposalInspector>>,
 ) -> Result<MultisigService<'a>> {
     let cluster = config.cluster();
-    let connection = anchor_client::Client::new(cluster.clone(), payer.clone());
+    let connection = anchor_client::Client::new_with_options(
+        cluster.clone(),
+        payer.clone(),
+        CommitmentConfig {
+            commitment: config.commitment,
+        },
+    );
     let client = connection.program(config.program_id);
 
     Ok(MultisigService {
