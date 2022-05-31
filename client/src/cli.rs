@@ -16,10 +16,22 @@ pub struct Opts {
     #[clap(short, long)]
     pub multisig: Option<Pubkey>,
 
+    #[clap(long)]
+    pub delegated_owner: Option<Pubkey>,
+
+    #[clap(short, long)]
+    pub keypair: Option<String>,
+
+    #[clap(short, long)]
+    pub url: Option<String>,
+
     #[clap(subcommand)]
     pub job: Job,
 }
 
+// Admin and Propose are split up so that a custom multisig cli can be written
+// with its own Proposal impl, meanwhile it can reuse Admin(MultisigCommand) in
+// its own `Job` definition. See jet-multisig-cli for a prototype.
 nested_subcommands!(
     Job {
         /// Anything other than submitting a proposal
