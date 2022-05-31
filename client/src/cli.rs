@@ -22,40 +22,52 @@ pub struct Opts {
 
 nested_subcommands!(
     Job {
+        /// Anything other than submitting a proposal
         Admin(MultisigCommand),
+        /// Submit a proposed instruction to be voted on by a multisig
         Propose(Proposal),
     }
 );
 
 #[derive(Parser)]
 pub enum MultisigCommand {
+    /// Create a new multisig
     New(CreateMultisig),
     AddDelegates(Delegates),
     RemoveDelegates(Delegates),
     Approve(Transaction),
     Execute(Transaction),
+    /// Display a multisig's metadata
     Get,
+    /// List all multisigs
     List,
+    /// Display a proposal's metadata
     GetProposal(Key),
+    /// List all proposals
     ListProposals,
+    /// Interpret proposal data contents
     InspectProposal(Key),
 }
 
 nested_subcommands! {
     Proposal {
+        /// Propose an instruction for multisig itself
         Multisig(MultisigProposal),
-        Bpf(BpfProposal),
+        /// Propose an instruction for the BPF upgradeable loader
+        Program(ProgramProposal),
+        /// Propose an instruction for the SPL token program
         Token(TokenProposal),
     }
 }
 
 #[derive(Parser)]
 pub enum MultisigProposal {
+    /// Change the vote threshold or owners for a multisig
     Edit(Edit),
 }
 
 #[derive(Parser)]
-pub enum BpfProposal {
+pub enum ProgramProposal {
     Upgrade(ProposeUpgrade),
 }
 
@@ -70,6 +82,8 @@ pub struct CreateMultisig {
     pub threshold: u64,
     #[clap(required = true)]
     pub owners: Vec<Pubkey>,
+    #[clap(long, help="sets the space/lamports sufficiently large to handle this many owners. if unset, defaults to allow owner list to grow by 10")]
+    pub max_owners: Option<usize>,
 }
 
 #[derive(Parser, Debug)]
@@ -121,7 +135,7 @@ pub fn run_job(job: Job, service: &MultisigService, multisig: Option<Pubkey>) ->
             let multisig = multisig.expect(MISSING_MULTISIG);
             match cmd.subcommand {
                 Proposal::Multisig(cmd) => run_multisig_proposal(cmd.subcommand, service, multisig),
-                Proposal::Bpf(cmd) => run_bpf_proposal(cmd.subcommand, service, multisig),
+                Proposal::Program(cmd) => run_bpf_proposal(cmd.subcommand, service, multisig),
                 Proposal::Token(cmd) => run_token_proposal(cmd.subcommand, service, multisig),
             }
         }
@@ -135,7 +149,7 @@ pub fn run_multisig_command(
 ) -> Result<()> {
     match job {
         MultisigCommand::New(cmd) => {
-            let keys = service.program.create_multisig(cmd.threshold, cmd.owners)?;
+            let keys = service.program.create_multisig(cmd.threshold, cmd.owners, cmd.max_owners)?;
             println!("{} {}", keys.0, keys.1);
         }
         MultisigCommand::AddDelegates(cmd) => {
@@ -196,12 +210,12 @@ pub fn run_multisig_proposal(
 }
 
 pub fn run_bpf_proposal(
-    job: BpfProposal,
+    job: ProgramProposal,
     service: &MultisigService,
     multisig: Pubkey,
 ) -> Result<()> {
     match job {
-        BpfProposal::Upgrade(cmd) => {
+        ProgramProposal::Upgrade(cmd) => {
             let key = bpf::propose_upgrade(&service, &multisig, &cmd.program, &cmd.buffer)?;
             println!("{}", key);
         }
@@ -233,12 +247,18 @@ pub fn run_token_proposal(
 #[macro_export]
 macro_rules! nested_subcommands {
     ($name:ident {
-        $($top:ident($bottom:ty)),+$(,)?
+        $(
+            $(#[$attribute:meta])*
+            $top:ident($bottom:ty)
+        ),+$(,)?
     }) => {
         paste! {
             #[derive(Parser)]
             pub enum $name {
-                $($top([<$top $bottom>]),)+
+                $(
+                    $(#[$attribute])*
+                    $top([<$top $bottom>]),
+                )+
             }
 
             $(
