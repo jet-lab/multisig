@@ -5,7 +5,8 @@ use anchor_client::{
     solana_sdk::{
         bpf_loader_upgradeable, instruction::Instruction,
         loader_upgradeable_instruction::UpgradeableLoaderInstruction, pubkey::Pubkey,
-    }, RequestBuilder, Program,
+    },
+    Program, RequestBuilder,
 };
 use anyhow::Result;
 use serum_multisig::{DelegateList, Transaction, TransactionAccount};
@@ -152,6 +153,20 @@ impl<'a> MultisigService<'a> {
                         return Ok(());
                     }
 
+                    UpgradeableLoaderInstruction::SetAuthority => {
+                        println!("Proposal to change authority for a program");
+
+                        let program_data = proposed_tx.accounts[0].pubkey;
+                        let current_authority = proposed_tx.accounts[1].pubkey;
+                        let new_authority = proposed_tx.accounts[2].pubkey;
+
+                        println!("ProgramData:       {program_data}");
+                        println!("Current Authority: {current_authority}");
+                        println!("New Authority:     {new_authority}");
+
+                        return Ok(());
+                    }
+
                     _ => (),
                 }
             }
@@ -160,7 +175,6 @@ impl<'a> MultisigService<'a> {
 
         println!("unknown proposal!");
         Ok(())
-        
     }
 }
 

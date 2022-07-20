@@ -1,6 +1,9 @@
 use std::io::ErrorKind;
 
-use anchor_client::{solana_sdk::{pubkey::Pubkey, commitment_config::CommitmentLevel}, Cluster};
+use anchor_client::{
+    solana_sdk::{commitment_config::CommitmentLevel, pubkey::Pubkey},
+    Cluster,
+};
 use anyhow::Result;
 use serde::de::DeserializeOwned;
 use serde_derive::Deserialize;
@@ -20,10 +23,7 @@ where
 {
     std::fs::read_to_string(path).map_err(|e| {
         if e.kind() == ErrorKind::NotFound {
-            std::io::Error::new(
-                ErrorKind::NotFound,
-                format!("{}: {}", e, path),
-            )
+            std::io::Error::new(ErrorKind::NotFound, format!("{}: {}", e, path))
         } else {
             e
         }
