@@ -81,6 +81,7 @@ pub enum MultisigProposal {
 #[derive(Parser)]
 pub enum ProgramProposal {
     Upgrade(ProposeUpgrade),
+    SetUpgradeAuthority(SetUpgradeAuthority),
 }
 
 #[derive(Parser)]
@@ -94,7 +95,10 @@ pub struct CreateMultisig {
     pub threshold: u64,
     #[clap(required = true)]
     pub owners: Vec<Pubkey>,
-    #[clap(long, help="sets the space/lamports sufficiently large to handle this many owners. if unset, defaults to allow owner list to grow by 10")]
+    #[clap(
+        long,
+        help = "sets the space/lamports sufficiently large to handle this many owners. if unset, defaults to allow owner list to grow by 10"
+    )]
     pub max_owners: Option<usize>,
 }
 
@@ -115,6 +119,13 @@ pub struct Edit {
 pub struct ProposeUpgrade {
     pub program: Pubkey,
     pub buffer: Pubkey,
+}
+
+#[derive(Parser)]
+pub struct SetUpgradeAuthority {
+    pub program: Pubkey,
+    #[clap(long)]
+    pub new_authority: Pubkey,
 }
 
 #[derive(Parser)]
@@ -161,7 +172,10 @@ pub fn run_multisig_command(
 ) -> Result<()> {
     match job {
         MultisigCommand::New(cmd) => {
-            let keys = service.program.create_multisig(cmd.threshold, cmd.owners, cmd.max_owners)?;
+            let keys =
+                service
+                    .program
+                    .create_multisig(cmd.threshold, cmd.owners, cmd.max_owners)?;
             println!("{} {}", keys.0, keys.1);
         }
         MultisigCommand::AddDelegates(cmd) => {
@@ -179,7 +193,9 @@ pub fn run_multisig_command(
                 .execute(multisig.expect(MISSING_MULTISIG), cmd.transaction)?;
         }
         MultisigCommand::Get => {
-            let ms = service.program.get_multisig(multisig.expect(MISSING_MULTISIG))?;
+            let ms = service
+                .program
+                .get_multisig(multisig.expect(MISSING_MULTISIG))?;
             println!("{:#?}", ms);
         }
         MultisigCommand::List => {
@@ -230,6 +246,15 @@ pub fn run_bpf_proposal(
         ProgramProposal::Upgrade(cmd) => {
             let key = bpf::propose_upgrade(&service, &multisig, &cmd.program, &cmd.buffer)?;
             println!("{}", key);
+        }
+        ProgramProposal::SetUpgradeAuthority(cmd) => {
+            let key = bpf::propose_set_upgrade_authority(
+                service,
+                &multisig,
+                &cmd.program,
+                Some(&cmd.new_authority),
+            )?;
+            println!("{}", key)
         }
     }
     Ok(())
